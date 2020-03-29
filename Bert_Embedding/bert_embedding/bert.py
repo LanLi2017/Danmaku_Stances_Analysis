@@ -8,9 +8,11 @@ from mxnet.gluon.data import DataLoader
 import gluonnlp
 from gluonnlp.data import BERTTokenizer, BERTSentenceTransform
 
-from .dataset import BertEmbeddingDataset
+
 
 __author__ = 'Gary Lai'
+
+from Bert_Embedding.bert_embedding.dataset import BertEmbeddingDataset
 
 logger = logging.getLogger(__name__)
 

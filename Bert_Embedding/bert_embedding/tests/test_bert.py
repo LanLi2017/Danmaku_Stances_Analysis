@@ -1,6 +1,8 @@
-from ..bert import BertEmbedding
+
 
 __author__ = "Gary Lai"
+
+from Bert_Embedding.bert_embedding import BertEmbedding
 
 
 def test_deploy():
