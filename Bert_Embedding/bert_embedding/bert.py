@@ -8,7 +8,7 @@ from mxnet.gluon.data import DataLoader
 import gluonnlp
 from gluonnlp.data import BERTTokenizer, BERTSentenceTransform
 
-from bert_embedding.dataset import BertEmbeddingDataset
+from .dataset import BertEmbeddingDataset
 
 __author__ = 'Gary Lai'
 
