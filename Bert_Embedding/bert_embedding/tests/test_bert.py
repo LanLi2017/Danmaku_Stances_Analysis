@@ -1,4 +1,4 @@
-from bert_embedding import BertEmbedding
+from ..bert import BertEmbedding
 
 __author__ = "Gary Lai"
 
