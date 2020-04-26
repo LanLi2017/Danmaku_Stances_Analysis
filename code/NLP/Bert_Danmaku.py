@@ -1,10 +1,10 @@
 import codecs
 import time
-from bert_serving.client import BertClient
+# from bert_serving.client import BertClient
 import gensim
 import jieba
 import pandas as pd
-from bert_serving.server import get_args_parser, BertServer
+# from bert_serving.server import get_args_parser, BertServer
 from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -12,10 +12,7 @@ from sklearn.manifold import TSNE
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn as sns
 #
-import mxnet as mx
-from bert_embedding import BertEmbedding
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -80,11 +77,11 @@ def word2vect(wordvectors, doc):
     return vectors
 
 
-def bert_embed(doc):
-    bert_embed_danmaku =[]
+# def bert_embed(doc):
+#     bert_embed_danmaku =[]
     # ctx =mx.gpu(0)
-    print("begin bert embedding")
-    bert_embedding = BertEmbedding(model='bert_12_768_12')
+    # print("begin bert embedding")
+    # bert_embedding = BertEmbedding(model='bert_12_768_12')
     # for sentence in doc:
     #     while True:
     #         try:
@@ -94,13 +91,13 @@ def bert_embed(doc):
     #             bert_embed_danmaku.append(res)
     #         except ValueError:
     #             pass
-    sentences = doc.split('\n')
-    print(sentences)
-    result = bert_embedding(sentences)
-    first_sen = result[0]
-    print(first_sen[0])
-    print(len(first_sen[0]))
-    return result
+    # sentences = doc.split('\n')
+    # print(sentences)
+    # result = bert_embedding(sentences)
+    # first_sen = result[0]
+    # print(first_sen[0])
+    # print(len(first_sen[0]))
+    # return result
 
 
 def bert_consine_simi(window_size = 5, threshold =0.9, first_sentence_id=0, sencond_sentence_id=1):
@@ -110,27 +107,27 @@ def bert_consine_simi(window_size = 5, threshold =0.9, first_sentence_id=0, senc
     pass
 
 
-def main_bert_embedding():
-    output_seg_path = 'danmaku_seg_remove_stop_91101531.txt'
-    output_path1 = 'danmaku_91101531.txt'
-    # list of lists : Chinese tokens after jieba, list of danmaku(sentences)/tokens
-    doc = jieba_token(output_path1, output_seg_path)
-    str_doc = ''.join(doc)
-    model = bert_embed(str_doc)
-    print("finish bert embedding")
-    print(type(model))
-    print(model)
-    # X = np.array(model)
-    pca = PCA(n_components=2)
-    pca_result = pca.fit_transform(model)
-
-    # create a plot of the projection
-    plt.figure(figsize=(16, 10))
-    plt.scatter(pca_result[:, 0], pca_result[:, 1], cmap='rainbow')
-    plt.xlabel('First Principle Component')
-    plt.ylabel('Second Principle Component')
-    plt.savefig('pca_91101531.png')
-    plt.show()
+# def main_bert_embedding():
+#     output_seg_path = 'danmaku_seg_remove_stop_91101531.txt'
+#     output_path1 = 'danmaku_91101531.txt'
+#     # list of lists : Chinese tokens after jieba, list of danmaku(sentences)/tokens
+#     doc = jieba_token(output_path1, output_seg_path)
+#     str_doc = ''.join(doc)
+#     model = bert_embed(str_doc)
+#     print("finish bert embedding")
+#     print(type(model))
+#     print(model)
+#     # X = np.array(model)
+#     pca = PCA(n_components=2)
+#     pca_result = pca.fit_transform(model)
+#
+#     # create a plot of the projection
+#     plt.figure(figsize=(16, 10))
+#     plt.scatter(pca_result[:, 0], pca_result[:, 1], cmap='rainbow')
+#     plt.xlabel('First Principle Component')
+#     plt.ylabel('Second Principle Component')
+#     plt.savefig('pca_91101531.png')
+#     plt.show()
 
 
 def main():
@@ -139,7 +136,7 @@ def main():
     # output_path='danmaku.txt'
     output_path1 = 'danmaku_91101531.txt'
     extract_text(filep1,column,output_path1)
-    output_seg_path = 'danmaku_seg_remove_stop_91101531.txt'
+    output_seg_path = 'data/danmaku_seg_remove_stop_91101531.txt'
 
     # list of lists : Chinese tokens after jieba, list of danmaku(sentences)/tokens
     doc = jieba_token(output_path1,output_seg_path)
@@ -242,35 +239,35 @@ def bert_service():
     np.save('Danmaku_Bert_Embedding',stacked_subset_vec_all_layers)
 
     # load bert vectors and labels
-    subset_vec_all_layers = np.load('Danmaku_Bert_Embedding.npy')
+    subset_vec_all_layers = np.load('model/Danmaku_Bert_Embedding.npy')
     return subset_vec_all_layers
 
 
 def vis(embed,vis_alg='pca',pool_alg='REDUCE_MEAN'):
-    plt.close()
+    plt.ioff()
     fig = plt.figure()
-    plt.rcParams['figure.figsize'] = [28, 7]
+    plt.rcParams['figure.figsize'] = [9, 11]
     for idx, ebd in enumerate(embed):
-        ax = plt.subplot(2, 6, idx+1)
+        ax = plt.subplot(3, 4, idx+1)
         vis_x = ebd[:, 0]
         vis_y = ebd[:, 1]
         plt.scatter(vis_x, vis_y,cmap='rainbow', alpha=0.7, s=2)
         ax.set_title(f'pool_layer=-{idx+1}')
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.1, right=0.95, top=0.9)
-    fig.suptitle(f'{vis_alg} visualization of BERT layers using "bert-as-service" (-pool_strategy={pool_alg})',
-                 fontsize=14)
-    plt.savefig('bert_pca_91101531.png')
+    # fig.suptitle(f'{vis_alg} visualization of BERT layers using "bert-as-service"\n (-pool_strategy={pool_alg})')
+    plt.savefig('figure/bert_pca.png',bbox_inches='tight')
     plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
-    subset_vec_p = 'Danmaku_Bert_Embedding.npy'
+    subset_vec_p = 'model/Danmaku_Bert_Embedding.npy'
     # load bert vectors and labels
     subset_vec_all_layers = np.load(subset_vec_p)
 
     pca_embed = [PCA(n_components=3).fit_transform(v) for v in subset_vec_all_layers]
-    # vis(pca_embed)
+    vis(pca_embed)
     kmeans = KMeans(n_clusters=3, random_state=0)
     # X_clusters = [kmeans.fit_predict(x) for x in pca_embed]
     Label_color = {
@@ -279,12 +276,18 @@ if __name__ == '__main__':
         2: 'b',
     }
     # label_c = [Label_color[l] for l in X_clusters]
-    plt.figure(figsize=(7,7))
+    fig = plt.figure()
+    plt.rcParams['figure.figsize'] = [30, 7]
     for idx, ebd in enumerate(pca_embed):
+        ax = plt.subplot(3, 4, idx + 1)
         X_clusters = kmeans.fit_predict(ebd)
         label_c = [Label_color[l] for l in X_clusters]
         vis_x = ebd[:, 0]
         vis_y = ebd[:, 1]
         plt.scatter(vis_x, vis_y, c = label_c, alpha=0.7, s=2)
-    plt.savefig('kmeans-pca-bert.png')
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.1, right=0.95, top=0.9)
+    # fig.suptitle(f'K-means visualization of BERT \nlayers using "bert-as-service" \n(-pool_strategy=REDUCE_MEAN)',
+    #              fontsize=14)
+    plt.savefig('figure/kmeans-pca-bert.png',bbox_inches='tight')
     plt.show()
