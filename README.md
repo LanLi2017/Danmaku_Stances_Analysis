@@ -1,4 +1,26 @@
 # Danmaku_Context_Analysis
+
+## Project Directory Layout
+| Directory                       | Description                             | 
+| ------------------------------- |:---------------------------------------:|
+| code                            | All of codes                            | 
+| data                            | Crawling danmaku from Bilibli           |
+| paper                           | related work                            |
+| .gitignore                      |                                         |
+| aid_summary.csv                 | metadata of video from Bilibili         |
+| code/EDA                        | Exploring Data Analysis                 | 
+| code/NLP                        | NLP related code                        |  
+| code/bilibili_crawler           | Crawling code                           |
+| code/combined_data/91101531     | merged dataset                          | 
+| NLP/data                        | Dataset after NLP                       |
+| NLP/figure                      | Figures of Experiments                  |
+| NLP/Bert_Danmaku.py             | BERT dealing with Chinese Danmaku       |
+| NLP/Merge_Data.py               | Merge Data from data package            |
+| NLP/segment_video_similarity.py | calcualte similarity with sliding window|
+| NLP/test_path.py                | test                                    |
+
+
+
 ## Discussion Note:
 [Link](https://docs.google.com/document/d/1HN8MdgOgJVAhEaxqVUbzsouCAeuPus8OcvkbMAETzjE/edit)
 ## Checkpoints
