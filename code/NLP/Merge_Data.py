@@ -36,9 +36,10 @@ def composed_csv(input_path,output_path):
         df=pd.read_csv(p)
         dfs.append(df)
     # export to csv
-    frame=pd.concat(dfs,axis=0,ignore_index=True).sort_values('Converted_time')
+    frame=pd.concat(dfs,axis=0,ignore_index=True).sort_values('Showing_time')
+    frame = frame.drop(['Row_no'],axis=1)
     # frame.to_csv(f'../combined_data/{90976388}/combined1_{90976388}.csv',index=False, encoding='utf-8')
-    frame.drop_duplicates(subset="Converted_time", inplace=True)
+    frame.drop_duplicates(inplace=True)
     # # print(frame['Converted_time'])
     frame.to_csv(output_path,index=False, encoding='utf-8')
 
