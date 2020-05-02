@@ -5,6 +5,7 @@ import gensim
 import jieba
 import pandas as pd
 # from bert_serving.server import get_args_parser, BertServer
+import seaborn as sns
 from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -130,13 +131,13 @@ def bert_consine_simi(window_size = 5, threshold =0.9, first_sentence_id=0, senc
 #     plt.show()
 
 
-def main():
-    filep1 = "../combined_data/91101531/combined_91101531.csv"
+def main1():
+    filep1 = "../combined_data/61437877/combined_61437877.csv"
     column = 'Barrages_original'
     # output_path='danmaku.txt'
-    output_path1 = 'danmaku_91101531.txt'
+    output_path1 = 'data/danmaku_61437877.txt'
     extract_text(filep1,column,output_path1)
-    output_seg_path = 'data/danmaku_seg_remove_stop_91101531.txt'
+    output_seg_path = 'data/danmaku_seg_remove_stop_61437877.txt'
 
     # list of lists : Chinese tokens after jieba, list of danmaku(sentences)/tokens
     doc = jieba_token(output_path1,output_seg_path)
@@ -158,7 +159,7 @@ def main():
     plt.scatter(pca_result[:,0], pca_result[:,1], cmap='rainbow')
     plt.xlabel('First Principle Component')
     plt.ylabel('Second Principle Component')
-    plt.savefig('pca_91101531.png')
+    plt.savefig('pca_61437877.png')
     plt.show()
 
 
@@ -184,7 +185,7 @@ def main():
     # ax.set_title('Danmakus')
     # ax.set_yticklabels([]) # hide ticks
     # ax.set_xticklabels([]) #hide ticks
-    plt.savefig('t-sne_91101531.png')
+    plt.savefig('t-sne_61437877.png')
     plt.show()
 
 
@@ -204,7 +205,7 @@ def bert_service():
     # print(cos_s1>cos_s2)
     # ==========================================================================
     # list of lists : Chinese tokens after jieba, list of danmaku(sentences)/tokens
-    output = 'danmaku_91101531.txt'
+    output = 'data/danmaku_61437877.txt'
     with open(output, 'r', encoding='utf-8')as f:
         subset_text = [line.strip('\n') for line in f]
 
@@ -236,10 +237,10 @@ def bert_service():
 
     # save bert vectors
     stacked_subset_vec_all_layers = np.stack(subset_vec_all_layers)
-    np.save('Danmaku_Bert_Embedding',stacked_subset_vec_all_layers)
+    np.save('model/Danmaku_model1',stacked_subset_vec_all_layers)
 
     # load bert vectors and labels
-    subset_vec_all_layers = np.load('model/Danmaku_Bert_Embedding.npy')
+    subset_vec_all_layers = np.load('model/Danmaku_model1.npy')
     return subset_vec_all_layers
 
 
@@ -256,13 +257,13 @@ def vis(embed,vis_alg='pca',pool_alg='REDUCE_MEAN'):
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.1, right=0.95, top=0.9)
     # fig.suptitle(f'{vis_alg} visualization of BERT layers using "bert-as-service"\n (-pool_strategy={pool_alg})')
-    plt.savefig('figure/bert_pca.png',bbox_inches='tight')
+    plt.savefig('figure/bert_pca_model1.png',bbox_inches='tight')
     plt.show()
     # plt.show()
 
 
-if __name__ == '__main__':
-    subset_vec_p = 'model/Danmaku_Bert_Embedding.npy'
+def main_vis():
+    subset_vec_p = 'model/Danmaku_model1.npy'
     # load bert vectors and labels
     subset_vec_all_layers = np.load(subset_vec_p)
 
@@ -289,5 +290,19 @@ if __name__ == '__main__':
     plt.subplots_adjust(bottom=0.1, right=0.95, top=0.9)
     # fig.suptitle(f'K-means visualization of BERT \nlayers using "bert-as-service" \n(-pool_strategy=REDUCE_MEAN)',
     #              fontsize=14)
-    plt.savefig('figure/kmeans-pca-bert.png',bbox_inches='tight')
+    plt.savefig('figure/kmeans-pca-bert_model1.png',bbox_inches='tight')
     plt.show()
+
+
+def main():
+    filep1 = "../combined_data/61437877/combined_61437877.csv"
+    column = 'Barrages_original'
+    # output_path='danmaku.txt'
+    output_path1 = 'data/danmaku_61437877.txt'
+    extract_text(filep1, column, output_path1)
+    bert_service()
+
+
+if __name__ == '__main__':
+    # main()
+    main_vis()

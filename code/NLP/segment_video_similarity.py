@@ -56,7 +56,7 @@ def vis_tsne(V):
     plt.show()
 
 
-def test(data):
+def istest(data):
     # test
     V1 = data[9]
 
@@ -102,6 +102,7 @@ def clustering_window(vector_dan, labels):
     clusters = dbscan.fit_predict(X_scaled)
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
     # pprint(clusters.labels_)
+    plt.figure(figsize=(20, 10))
     plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=clusters, cmap="plasma")
     for i,txt in enumerate(labels):
         plt.annotate(txt, (X_scaled[:,0][i], X_scaled[:,1][i]))
@@ -116,13 +117,13 @@ def main():
     filep = "../combined_data/92725048/combined_92725048.csv"
     column = ['Barrages_original','Showing_time']
     # output_path='danmaku.txt'
-    output_path = 'data/92725048'
-    file_n = '92725048_dan.csv'
+    output_path = 'data/61437877'
+    file_n = '61437877_dan.csv'
     data_p = output_path+'/'+file_n
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    n = 100
+    n = 50
     # pandas dataframe : ['danmaku','converted_time']
     df = extract_text(filep, column, data_p)
     danmaku_label = list( df['Barrages_original'])
@@ -133,7 +134,7 @@ def main():
     # split_danmaku = [danmaku_lis[i:i + n] for i in range(0, len(danmaku_lis), n)]
 
     # load danmaku model .numpy file
-    data = load_np('model/Danmaku_Bert_Embedding.npy')
+    data = load_np('model/Danmaku_model1.npy')
     # last layer
     data = data[-1, :, :]
 
@@ -148,7 +149,7 @@ def main():
 
     # DBSCAN : Density-based spatial clustering of applications with noise
     pprint(dan_labels[0])
-    clustering_window(split_d[0], dan_labels[0])
+    clustering_window(split_d[20], dan_labels[0])
     # for vector_dan in split_d:
     #     print(len(vector_dan))
     #     # distance pairingly
