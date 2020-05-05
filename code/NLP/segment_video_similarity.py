@@ -1,5 +1,6 @@
 import os
 from pprint import pprint
+from typing import List
 
 import matplotlib
 from matplotlib import font_manager
@@ -56,9 +57,16 @@ def vis_tsne(V):
     plt.show()
 
 
+def isdistribute(data):
+    plt.hist(data, density=True, bins=30)
+    plt.ylabel('count')
+    plt.xlabel('showing time')
+    plt.savefig('figure/time_distribute.png')
+
+
 def istest(data):
     # test
-    V1 = data[9]
+    V1 = data[0]
 
     # reduce dimension and vis
     vis_tsne(V1)
@@ -109,24 +117,51 @@ def clustering_window(vector_dan, labels, no_chunks):
         plt.annotate(txt, (X_scaled[:,0][i], X_scaled[:,1][i]))
     plt.xlabel("Feature 0")
     plt.ylabel("Feature 1")
-    plt.savefig(f'figure/window_subplot/cluster_win{no_chunks}.png')
+
+    # n = 200
+    # plt.savefig(f'figure/window_subplot/cluster_win{no_chunks}.png')
+
+    # n = 300
+    # plt.savefig(f'figure/window_subplot1/cluster_win{no_chunks}.png')
+
+    # n = 400
+    # plt.savefig(f'figure/window_subplot2/cluster_win{no_chunks}.png')
+
+    # n = 50
+    plt.savefig(f'figure/window_time/cluster_win{no_chunks}.png')
     # plt.show()
     return clusters
 
 
-def main():
+def slice_list_by_idx_list(data:list, idx_list:list) -> List[list]:
+    return [
+        data[start+1: end+1]
+        for start, end in zip(
+            [-1] + idx_list,
+            idx_list + [len(data) - 1],
+        )
+        if start < end
+    ]
+
+
+def crt_danmakulist():
+    # create danmaku + showingtime
     filep = "../combined_data/61437877/combined_61437877.csv"
-    column = ['Barrages_original','Showing_time']
+    column = ['Barrages_original', 'Showing_time']
     # output_path='danmaku.txt'
     output_path = 'data/61437877'
     file_n = '61437877_dan.csv'
-    data_p = output_path+'/'+file_n
+    data_p = output_path + '/' + file_n
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    n = 200
-    # pandas dataframe : ['danmaku','converted_time']
     df = extract_text(filep, column, data_p)
+    return df
+
+
+def main(n):
+    # chunk by danmaku counts
+    df = crt_danmakulist()
     danmaku_label = list( df['Barrages_original'])
     # for label the points
     dan_labels = [danmaku_label[i:i + n] for i in range(0, len(danmaku_label), n)]
@@ -140,13 +175,14 @@ def main():
     data = data[-1, :, :]
 
     d = data.tolist()
+
     # print(d[1])
 
     # split chunk, size n = 100/
     split_d = [d[i:i + n] for i in range(0, len(d), n)]
 
    # test
-   #  test(split_d)
+   # istest(split_d)
 
     # DBSCAN : Density-based spatial clustering of applications with noise
     # pprint(dan_labels[0])
@@ -160,11 +196,71 @@ def main():
         # distance pairingly
         # dis_metric = cal_distance(vector_dan)
         # label: positive / neural / negative
-    #     cluster_dan = DBSCAN(min_samples=3, metric='precomputed').fit(distance.pdist(vector_dan, metric='cosine'))
+        # cluster_dan = DBSCAN(min_samples=3, metric='precomputed').fit(distance.pdist(vector_dan, metric='cosine'))
+
+
+def main1():
+    # 2-10 seconds
+    # showing time distribute
+    path = 'data/61437877/61437877_dan.csv'
+    data = extract_text(path,'Showing_time','data/61437877/61437877_time.csv')
+    isdistribute(data)
+
+
+def main2():
+    # chunk by showing time: 50
+    file_p = 'data/61437877/61437877_dan.csv'
+    data = pd.read_csv(file_p)
+
+    # add new column
+    data['timedel'] = data['Showing_time'] // 50
+
+    # data = data.groupby(['timedel']).indices
+    data = data.groupby(['timedel']).apply(lambda x: x.index.tolist())
+    pprint(data[0][-1])
+    idx = []
+    for d in data:
+        idx.append(d[-1])
+    print(idx)
+
+    # [292, 440, 608, 760, 886, 1063]
+    df = crt_danmakulist()
+    danmaku_label = list(df['Barrages_original'])
+
+    # for label the points
+    dan_labels = slice_list_by_idx_list(danmaku_label, idx)
+
+    # chunk danmaku
+    # split_danmaku = [danmaku_lis[i:i + n] for i in range(0, len(danmaku_lis), n)]
+
+    # load danmaku model .numpy file
+    data = load_np('model/Danmaku_model1.npy')
+    # last layer
+    data = data[-1, :, :]
+
+    d = data.tolist()
+
+    # print(d[1])
+
+    # split chunk, size n = 100/
+    split_d = slice_list_by_idx_list(d, idx)
+
+    # test
+    # istest(split_d)
+
+    # DBSCAN : Density-based spatial clustering of applications with noise
+    # pprint(dan_labels[0])
+    # clustering_window(split_d[0], dan_labels[0])
+
+    for i in range(len(split_d)):
+        clustering_window(split_d[i], dan_labels[i], i)
+    # n = 50
+    # main(n)
 
 
 if __name__=='__main__':
-    main()
-
+    # main(400)
+    # main1()
+    main2()
 
 
