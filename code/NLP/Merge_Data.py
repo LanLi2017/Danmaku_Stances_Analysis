@@ -46,6 +46,7 @@ def composed_csv(input_path,output_path):
 
 def main():
     # av_id=90976388
+    # 55573492
     av_id=input('input the av id:')
     p=walk_danmaku_csv(av_id)
 
