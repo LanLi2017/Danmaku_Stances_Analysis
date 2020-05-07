@@ -301,7 +301,7 @@ def main():
     av_id = 55573492
     # output_path='danmaku.txt'
     os.makedirs(f"data/{av_id}", exist_ok=True)
-    output_path1 = f'data/{av_id}/{av_id}_dan.txt'
+    output_path1 = f'data/{av_id}/{av_id}_dan.csv'
     extract_text(filep1, column, output_path1)
     # bert_service()
 
