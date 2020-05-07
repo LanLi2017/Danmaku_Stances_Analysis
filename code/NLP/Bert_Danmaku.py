@@ -1,4 +1,5 @@
 import codecs
+import os
 import time
 # from bert_serving.client import BertClient
 import gensim
@@ -13,16 +14,16 @@ from sklearn.manifold import TSNE
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from segment_video_similarity import extract_text
 #
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def extract_text(file_path,column,output_path):
-    df=pd.read_csv(file_path)
-    extract_part=df[column]
-    with open(output_path,'w')as f:
-        for e in extract_part:
-            f.write(e+'\n')
+# def extract_text(file_path,column,data_p):
+#     df = pd.read_csv(file_path)
+#     extract_part = df[column]
+#     extract_part.to_csv(data_p, index=False)
+#     return extract_part
 
 
 #jieba
@@ -295,14 +296,17 @@ def main_vis():
 
 
 def main():
-    filep1 = "../combined_data/61437877/combined_61437877.csv"
-    column = 'Barrages_original'
+    filep1 = "../combined_data/55573492/combined_55573492.csv"
+    column = ['Barrages_original','Showing_time']
+    av_id = 55573492
     # output_path='danmaku.txt'
-    output_path1 = 'data/danmaku_61437877.txt'
+    os.makedirs(f"data/{av_id}", exist_ok=True)
+    output_path1 = f'data/{av_id}/{av_id}_dan.txt'
     extract_text(filep1, column, output_path1)
-    bert_service()
+    # bert_service()
 
 
 if __name__ == '__main__':
-    # main()
-    main_vis()
+    main()
+
+    # main_vis()
