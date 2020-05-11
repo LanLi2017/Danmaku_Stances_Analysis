@@ -23,6 +23,14 @@
 
 ## Discussion Note:
 [Link](https://docs.google.com/document/d/1HN8MdgOgJVAhEaxqVUbzsouCAeuPus8OcvkbMAETzjE/edit)
+
+## Model Link:
+[Link](https://drive.google.com/drive/u/0/folders/1FBc7v0tvzdezGoSvqe2jo2KaL7exWMo-)
+
+## Corpus Link:
+[Link](https://drive.google.com/open?id=1gceT5Ea-TqroeQWkGG8-ChJRnZgBsJwI)
+
+
 ## Checkpoints
 ### Checkpoint1: 
 - [Slides](https://docs.google.com/presentation/d/1hf9pYF8hw_AGNDD7Oels4tAimsK4WVvhOu_eK1_MpYM/edit#slide=id.gcb9a0b074_1_0)
