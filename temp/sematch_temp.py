@@ -6,12 +6,12 @@ from sematch.semantic.similarity import WordNetSimilarity
 wns = WordNetSimilarity()
 wns.monol_word_similarity('狗', '猫', 'cmn', 'wup')
 # print(wns.word_similarity('dog', 'cat', 'li'))
-print(wns.monol_word_similarity('忧患', '安乐', 'cmn', 'wup'))
-print(wns.monol_word_similarity('忧患', '灾难', 'cmn', 'wup'))
-print(wns.monol_word_similarity('忧患', '担忧', 'cmn', 'wup'))
-print(wns.monol_word_similarity('电脑', '键盘', 'cmn', 'wup'))
-print(wns.monol_word_similarity('电脑', '电脑', 'cmn', 'wup'))
-print(wns.monol_word_similarity('国家', '国家', 'cmn', 'wup'))
+# print(wns.monol_word_similarity('忧患', '安乐', 'cmn', 'wup'))
+print(wns.monol_word_similarity('狗', '猫', 'cmn', 'wup'))
+print(wns.monol_word_similarity('猫', '狗', 'cmn', 'wup'))
+# print(wns.monol_word_similarity('电脑', '键盘', 'cmn', 'wup'))
+# print(wns.monol_word_similarity('电脑', '电脑', 'cmn', 'wup'))
+# print(wns.monol_word_similarity('国家', '国家', 'cmn', 'wup'))
 #
 # def parse_token(data):
 #     # words = []

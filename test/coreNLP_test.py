@@ -298,6 +298,13 @@ def main_test1():
     # print(iter(res))
     # pprint(next(res).tree())
     # print(parse.tree())
+    # if round(t) == round(s_time):
+    #     print('hey, catch you!')
+    #     print(f'time in danmaku: {t}')
+    #     print(f'get the time: {s_time}')
+    #     cut_time = t
+    #     print(f'cutting time: {cut_time}')
+    #     break
     for governor, dep, dependent in parse.triples():
         if dep == 'nsubj':
             print(governor, dependent)
@@ -308,6 +315,6 @@ def main_test1():
 
 
 if __name__ == '__main__':
-    main_test1()
+    main_test()
     # main()
     # main_test()

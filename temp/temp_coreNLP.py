@@ -37,7 +37,80 @@ def find_NN(sentence, parser):
     return subj
 
 
+def most_freq(data, parser, title_sub):
+    # data: previous 5 seconds [danmaku, showing_time]
+    # using most frequent n subjects: depend on how many subjects have been collected
+    danmaku = data.loc[:, 'Barrages_original']
+    d_sub = []
+    for d in danmaku:
+        d_sub.extend(find_NN(d, parser))
+    c = Counter(d_sub)
+    c_size = sum(c.values())
+    subjects = []
+    if c_size >= 3:
+        for value in c.most_common(3):
+            subjects.extend(value[0])
+    elif 0 < c_size < 3:
+        for value in c.most_common(c_size):
+            subjects.extend(value[0])
+    elif c_size == 0:
+        subjects.extend(title_sub)
+    return subjects
+
+
+def win_data(s_time, data, dan_index, parser, title_sub):
+    # window-slice data
+    # return the subject for the last data
+    cut_time = 0.0
+    for t in data['Showing_time']:
+        if t >= s_time: # if the difference is smaller than 0.1
+            cut_time = t
+            break
+    time_index = data.index[data['Showing_time'] == cut_time].tolist()[0]
+    # using the most frequent subjects to pad
+    dan_sub = most_freq(data[time_index:dan_index], parser, title_sub)
+    return dan_sub
+
+
+def padding_initial(title_sub, danmaku, parser):
+    # padding the initial danmaku list with title subjects
+    ini_subj = []
+    for dan in danmaku:
+        dan_sub = find_NN(dan, parser)  # list of subjects
+        if not dan_sub:
+            # print('initial dont have subject')
+            dan_sub = title_sub  # list of subjects in title
+        ini_subj.append(dan_sub)
+    return ini_subj
+
+
+def process_padding_last(data, parser, title_sub, m_data):
+    ''' process padding subject with danmakus in different time scale
+        Under Construction
+        m_data: the whole dataset; if the padding need the initial part
+    '''
+    # context: [window] 10-15; most-frequent
+    # danmaku: initial, middle, end;  danmaku list
+    # different padding policy needed
+    subjects = []
+    danmaku = data.loc[:, 'Barrages_original']
+    showing_time = data.loc[:, 'Showing_time']
+    window_size = 5.0  # get most frequent from above 5 seconds; find the round() index; might be out-of-boundary
+    for dan, dan_index in zip(danmaku, danmaku.index):
+        dan_sub = find_NN(dan, parser)  # list of subjects
+        if not dan_sub:
+            # corresponding showing time: s_time; get the previous 5 seconds
+            s_time = showing_time[dan_index] - window_size
+            if s_time < 10.0:
+                dan_sub = win_data(s_time, m_data,dan_index, parser, title_sub)
+            else:
+                dan_sub = win_data(s_time, data, dan_index, parser, title_sub)
+        subjects.append(dan_sub)
+    return subjects
+
+
 def map_subjects(subjects: list, filter_dis=0.2):
+    # mapping the subjects, filter the i,j in M
     wns = WordNetSimilarity()
     # enumerate pairing and calculate distances
     pair = []
@@ -51,44 +124,51 @@ def map_subjects(subjects: list, filter_dis=0.2):
             for v in value:
                 for cv in com_value:
                     pair_distance = wns.monol_word_similarity(v, cv, 'cmn', 'wup')
-                    print(f'{v} -> {cv}:  {pair_distance}')
+                    # print(f'{v} -> {cv}:  {pair_distance}')
                     if pair_distance > filter_dis:
                         pair.append(pair_distance)
                         # pairing index: (row, column)
                         pair_idxs.append(([index, value.index(v)], [i, com_value.index(cv)]))
             i += 1
-    print(pair_idxs)
     return pair_idxs
 
 
-def return_polarity(sur_words: list):
-    ''' if has not/no/.... '''
-    # from polyglot.downloader import downloader
-    # downloader.download("sentiment2.zh_Hant")
-    surrounding_wd = ''.join(sur for sur in sur_words)
-    text = Text(surrounding_wd)
-    pol_list = []
+def mappingset(pair_ids:list, m, n):
+    # for opinion m and opinion n; how many mapping sets do they have?
+    # what are the pairing index in m and in n
+    # pair_ids: list of tuple of lists:  ([100, 2], [102, 0])
     count = 0
-    for w in text.words:
-        try:
-            w_po = w.polarity
-            pol_list.append(w_po)
-            print(f'{w}: {w.polarity}')
-        except:
+    map_ids = []
+    for tuples in pair_ids:
+        # the first opinion index
+        op1 = tuples[0][0]
+        op2 = tuples[1][0]
+        if op1 == m and op2 == n:
+            i = tuples[0][1]
+            j = tuples[1][1]
+            map_id = (i,j)
+            map_ids.append(map_id)
+            count+=1
+        elif op1 == n and op2 == m:
+            i = tuples[1][1]
+            j = tuples[0][1]
+            map_id = (i, j)
+            map_ids.append(map_id)
             count += 1
+        else:
             pass
-    print(f'Error count: {count}')
-    return pol_list
+    print(count)
+    print(map_ids)
+    return count,map_ids
 
 
-def return_sur(token_sentence, n_token, sub_id):
+def sur_logic(token_sentence, n_token, sub_id):
     '''
-    [0, 4, 9]
+    surrounding words rule:
     Parameters
     ----------
     sentence: danmaku sentence
     n_token: number of surrounding words
-    sub: subjects
     sub_id: index of subject in the tokenized sentence list
     Returns: surrounding words of subjects
     -------
@@ -110,111 +190,112 @@ def return_sur(token_sentence, n_token, sub_id):
     return sur_words
 
 
-def most_freq(data, parser, title_sub):
-    # data: previous 5 seconds [danmaku, showing_time]
-    # using most frequent n subjects: depend on how many subjects have been collected
-    danmaku = data.loc[:, 'Barrages_original']
-    d_sub = []
-    for d in danmaku:
-        d_sub.extend(find_NN(d, parser))
-    c = Counter(d_sub)
-    c_size = sum(c.values())
-    subjects = []
-    if c_size >= 3:
-        for value in c.most_common(3):
-            subjects.append(value[0])
-    elif 0 < c_size < 3:
-        for value in c.most_common(c_size):
-            subjects.append(value[0])
-    elif c_size == 0:
-        subjects.append(title_sub)
-    return subjects
-
-
-def win_data(s_time, data, dan_index, parser, title_sub):
-    # window-slice data
-    # return the subject for the last data
-    cut_time = 0.0
-    for t in data['Showing_time']:
-        if t >= s_time: # if the difference is smaller than 0.1
-            cut_time = t
-            break
-    time_index = data.index[data['Showing_time'] == cut_time].tolist()[0]
-    # using the most frequent subjects to pad
-    dan_sub = most_freq(data[time_index:dan_index], parser, title_sub)
-    return dan_sub
-
-
-def process_padding(data, parser, title_sub, n_token, m_data):
-    ''' process padding subject with danmakus in different time scale
-        Under Construction
-        m_data: the whole dataset; if the padding need the initial part
-    '''
-    # context: [window] 10-15; most-frequent
-    # danmaku: initial, middle, end;  danmaku list
-    # different padding policy needed
-    subjects = []
+def surwords(subject: list,i, per_dan,n_token):
+    # return surrounding words for each subject in the sentence.
+    # i: ith position in sentence1
+    # per_dan: tokenized danmaku
     sur_words = []
+    if subject[i] not in per_dan:
+        sur_words.extend(subject[i])
+        sur_words.extend(per_dan)
+    else:
+        sub_id = per_dan.index(subject[i])
+        sur_words = sur_logic(per_dan, n_token, sub_id)
+    return sur_words
+
+
+def return_polarity(sur_words: list):
+    ''' using polarity of surrounding words to define subjects '''
+    # from polyglot.downloader import downloader
+    # downloader.download("sentiment2.zh_Hant")
+    surrounding_wd = ''.join(sur for sur in sur_words)
+    text = Text(surrounding_wd)
+    pol_list = []
+    count = 0
+    for w in text.words:
+        try:
+            w_po = w.polarity
+            pol_list.append(w_po)
+            print(f'{w}: {w.polarity}')
+        except:
+            count += 1
+            pass
+    print(f'Error count: {count}')
+    return pol_list
+
+
+def check_neg_pos(pol: list):
+    # check the polarity is negative or positive
+    neg = 0
+    pos = 0
+    for p in pol:
+        if p == -1:
+            neg += 1
+        elif p == 1:
+            pos += 1
+        else:
+            pass
+    if neg % 2 == 0 and neg != 0:
+        return 1
+    elif neg % 2 == 1:
+        return -1
+    elif pos != 0:
+        return 1
+    else:
+        return 0
+
+
+def diff_po(pol1, pol2):
+    # [0,0,0,1]  [0,-1,1,0]
+    # check the negative or positive for the polarity list
+    p_1 = check_neg_pos(pol1)
+    print(f'sentence0 polarity: {p_1}')
+    p_2 = check_neg_pos(pol2)
+    print(f'sentence1 polarity: {p_2}')
+    return abs(p_1 - p_2)
+
+
+def op_distance(subjects, m, n, data,parser):
+    # return opinion distance
+    # OD(O1, O2) = sum_enumerate(f()) / 2*len_enumeration()
+    # map subjects between each danmaku, filter
+    pair_idxs = map_subjects(subjects)
+    # pairing index in op1 and op2, [(i,j)]
+    len_M, mapids = mappingset(pair_idxs, m, n)
+    print(f'length of mapping subjects: {len_M}')
+    print('the mapping id i and j : \n')
+    pprint(mapids)
+    # m= 1 n= 0
+    # [(0, 1), (1, 1)]
+    # obj1: sentence1, subj:0; obj0: sentence 0, subj:1
+    # obj1: sentence1, subj:1; obj0: sentence 0, subj:1
+    pol_distances = 0
+    # surround words -2, +2
+    n_token = 2
     danmaku = data.loc[:, 'Barrages_original']
-    showing_time = data.loc[:, 'Showing_time']
-    window_size = 5.0  # get most frequent from above 5 seconds; find the round() index; might be out-of-boundary
-    count = 0
-    for dan, dan_index in zip(danmaku, danmaku.index):
-        dan_sub = find_NN(dan, parser)  # list of subjects
-        token_sentence = list(parser.tokenize(dan)) # lemma is not equal to tokenize
-        if not dan_sub:
-            # corresponding showing time: s_time; get the previous 5 seconds
-            s_time = showing_time[dan_index] - window_size
-            if s_time < 10.0:
-                dan_sub = win_data(s_time, m_data,dan_index, parser, title_sub)
-            else:
-                dan_sub = win_data(s_time, data, dan_index, parser, title_sub)
-            # no subject, short sentence/ phrases
-            sur_word = token_sentence
-            sur_words.append(sur_word)
+    token_sen_0 = list(parser.tokenize(danmaku[m]))
+    token_sen_1 = list(parser.tokenize(danmaku[n]))
+    subject_0 = subjects[m]
+    subject_1 = subjects[n]
 
-        else:
-            for sub in dan_sub:
-                try:
-                    sub_id = token_sentence.index(sub)
-                    # sub_id = initial_dan.index(dan) # index of NN/subject
-                    sur_word = return_sur(token_sentence, n_token, sub_id)
-                    sur_words.append(sur_word)
-                except:
-                    count += 1
-                    pass
-        subjects.extend(dan_sub)
-    return subjects, sur_words
-
-
-def padding_initial(title_sub, danmaku, parser, n_token):
-    # padding the initial danmaku list with title subjects
-    ini_subj = []
-    sur_words = []
-    count = 0
-    for dan in danmaku:
-        dan_sub = find_NN(dan, parser)  # list of subjects
-        token_sentence = list(parser.tokenize(dan))
-        if not dan_sub:
-            # print(dan)
-            # print('initial dont have subject')
-            dan_sub = title_sub  # list of subjects in title
-            # no subject, short sentence/ phrases
-            sur_word = token_sentence
-            sur_words.append(sur_word)
-        else:
-            for sub in dan_sub:
-                try:
-                    sub_id = token_sentence.index(sub)
-                    # sub_id = initial_dan.index(dan) # index of NN/subject
-                    sur_word = return_sur(token_sentence, n_token, sub_id)
-                    sur_words.append(sur_word)
-                except:
-                    count += 1
-                    pass
-
-        ini_subj.extend(dan_sub)
-    return ini_subj
+    if mapids:
+        for id in mapids:
+            i = id[0]
+            j = id[1]
+            print(f'id in first sentence: {i}; id in second sentence : {j}')
+            surword_0 = surwords(subject_0,i,token_sen_0,n_token)
+            print(f'the first surround words: {surword_0}')
+            pol_0 = return_polarity(surword_0)
+            print(f'the first subject polarity: {pol_0}')
+            surword_1 = surwords(subject_1,j,token_sen_1,n_token)
+            print(f'the second surround words: {surword_1}')
+            pol_1 = return_polarity(surword_1)
+            print(f'the second subject polarity: {pol_1}')
+            pol_distance = diff_po(pol_0, pol_1)
+            pol_distances += pol_distance
+    res = pol_distances / 2*len_M
+    print(f'sentence{m} to sentence{n} opinion distance is : {res}')
+    return res
 
 
 def main():
@@ -239,58 +320,21 @@ def main():
         if showing_time < initial_time:
             start_idx += 1
 
-    # slice danmaku list
-    token = 2
+    # slice danmaku list: initial + last, get subjects:list of lists
     initial_dan = data.loc[:start_idx, 'Barrages_original']
-    ini_subj = padding_initial(title_sub, initial_dan,parser, token)
-
+    ini_subj = padding_initial(title_sub, initial_dan,parser)
     last_data = data[start_idx + 1:]
-    # subjects = []
-
     # padding danmaku
     # processing padding on different timezone
-    last_subjects = process_padding(last_data, parser, title_sub, token, data)[0]
+    last_subjects = process_padding_last(last_data, parser, title_sub, data)
     subjects = ini_subj + last_subjects
 
-    sur_words = process_padding(last_data, parser, title_sub, token, data)[1]
-
-    # polarity, according to surrounding words to define the semantic
-    po_list = []
-    for sur in sur_words:
-        po = return_polarity(sur)
-        print(f'{sur}: {po}')
-        po_list.append(po)
-    pprint(po_list)
-
-    # map subjects between each danmaku
-    map_subjects(subjects)
-
-
-def main_test2():
-    # parser = CoreNLPDependencyParser(url='http://localhost:9001')
-    data = pd.read_csv('demo.csv')
-    danmaku = data.loc[:, 'Showing_time']
-    pprint(danmaku.index)
-    print(data[:][:5])
-    for t in danmaku:
-        if round(t) == 50:
-            print(t)
-
-    for t in data['Showing_time']:
-        if round(t) == round(50.843):
-            print(t)
-
-
-def main_test3():
-    parser = CoreNLPDependencyParser(url='http://localhost:9001')
-    # parser = CoreNLPParser('http://localhost:9001')
-    # print(list(parser.tokenize(u'中国人为什么不能选择安乐死？')))
-    # ['中国人', '为什么', '不', '能', '选择', '安乐死', '？']
-    # title = '中国人为什么不能选择安乐死？'
-    title = '我支持我觉得安乐死挺好的。'
-
-    for word in parser.tokenize(title):
-        print(word.lemma)
+    m = 10 # the m-th sentence
+    n = 100 # the n-th sentence
+    # what's the opinion distance between danmaku-m 0 and danmaku-n 1
+    # 因为违法，讨论完毕,0.0
+    # 因为人口会大量减少,0.151
+    op_distance(subjects,m,n,data,parser)
 
 
 if __name__ == '__main__':
