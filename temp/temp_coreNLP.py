@@ -6,7 +6,8 @@ from nltk import CoreNLPParser, CoreNLPDependencyParser, Tree
 from sematch.semantic.similarity import WordNetSimilarity
 import pandas as pd
 from polyglot.text import Text
-
+from scipy.spatial import distance
+import numpy as np
 
 def filter_data():
     # filter data
@@ -63,7 +64,7 @@ def win_data(s_time, data, dan_index, parser, title_sub):
     # return the subject for the last data
     cut_time = 0.0
     for t in data['Showing_time']:
-        if t >= s_time: # if the difference is smaller than 0.1
+        if t >= s_time:  # if the difference is smaller than 0.1
             cut_time = t
             break
     time_index = data.index[data['Showing_time'] == cut_time].tolist()[0]
@@ -102,7 +103,7 @@ def process_padding_last(data, parser, title_sub, m_data):
             # corresponding showing time: s_time; get the previous 5 seconds
             s_time = showing_time[dan_index] - window_size
             if s_time < 10.0:
-                dan_sub = win_data(s_time, m_data,dan_index, parser, title_sub)
+                dan_sub = win_data(s_time, m_data, dan_index, parser, title_sub)
             else:
                 dan_sub = win_data(s_time, data, dan_index, parser, title_sub)
         subjects.append(dan_sub)
@@ -133,7 +134,7 @@ def map_subjects(subjects: list, filter_dis=0.2):
     return pair_idxs
 
 
-def mappingset(pair_ids:list, m, n):
+def mappingset(pair_ids: list, m, n):
     # for opinion m and opinion n; how many mapping sets do they have?
     # what are the pairing index in m and in n
     # pair_ids: list of tuple of lists:  ([100, 2], [102, 0])
@@ -146,9 +147,9 @@ def mappingset(pair_ids:list, m, n):
         if op1 == m and op2 == n:
             i = tuples[0][1]
             j = tuples[1][1]
-            map_id = (i,j)
+            map_id = (i, j)
             map_ids.append(map_id)
-            count+=1
+            count += 1
         elif op1 == n and op2 == m:
             i = tuples[1][1]
             j = tuples[0][1]
@@ -157,9 +158,7 @@ def mappingset(pair_ids:list, m, n):
             count += 1
         else:
             pass
-    print(count)
-    print(map_ids)
-    return count,map_ids
+    return count, map_ids
 
 
 def sur_logic(token_sentence, n_token, sub_id):
@@ -190,7 +189,7 @@ def sur_logic(token_sentence, n_token, sub_id):
     return sur_words
 
 
-def surwords(subject: list,i, per_dan,n_token):
+def surwords(subject: list, i, per_dan, n_token):
     # return surrounding words for each subject in the sentence.
     # i: ith position in sentence1
     # per_dan: tokenized danmaku
@@ -216,11 +215,9 @@ def return_polarity(sur_words: list):
         try:
             w_po = w.polarity
             pol_list.append(w_po)
-            print(f'{w}: {w.polarity}')
         except:
             count += 1
             pass
-    print(f'Error count: {count}')
     return pol_list
 
 
@@ -249,53 +246,50 @@ def diff_po(pol1, pol2):
     # [0,0,0,1]  [0,-1,1,0]
     # check the negative or positive for the polarity list
     p_1 = check_neg_pos(pol1)
-    print(f'sentence0 polarity: {p_1}')
     p_2 = check_neg_pos(pol2)
-    print(f'sentence1 polarity: {p_2}')
     return abs(p_1 - p_2)
 
 
-def op_distance(subjects, m, n, data,parser):
+def op_distance(u, v, data, parser,subjects,pair_idxs):
     # return opinion distance
     # OD(O1, O2) = sum_enumerate(f()) / 2*len_enumeration()
     # map subjects between each danmaku, filter
-    pair_idxs = map_subjects(subjects)
     # pairing index in op1 and op2, [(i,j)]
-    len_M, mapids = mappingset(pair_idxs, m, n)
-    print(f'length of mapping subjects: {len_M}')
-    print('the mapping id i and j : \n')
-    pprint(mapids)
-    # m= 1 n= 0
-    # [(0, 1), (1, 1)]
+    len_M, mapids = mappingset(pair_idxs, u.any, v.any)
     # obj1: sentence1, subj:0; obj0: sentence 0, subj:1
     # obj1: sentence1, subj:1; obj0: sentence 0, subj:1
     pol_distances = 0
     # surround words -2, +2
     n_token = 2
     danmaku = data.loc[:, 'Barrages_original']
-    token_sen_0 = list(parser.tokenize(danmaku[m]))
-    token_sen_1 = list(parser.tokenize(danmaku[n]))
-    subject_0 = subjects[m]
-    subject_1 = subjects[n]
+    token_sen_0 = list(parser.tokenize(danmaku[u.any()]))
+    token_sen_1 = list(parser.tokenize(danmaku[v.any()]))
+    subject_0 = subjects[u.any()]
+    subject_1 = subjects[v.any()]
 
     if mapids:
         for id in mapids:
             i = id[0]
             j = id[1]
-            print(f'id in first sentence: {i}; id in second sentence : {j}')
-            surword_0 = surwords(subject_0,i,token_sen_0,n_token)
-            print(f'the first surround words: {surword_0}')
+            surword_0 = surwords(subject_0, i, token_sen_0, n_token)
             pol_0 = return_polarity(surword_0)
-            print(f'the first subject polarity: {pol_0}')
-            surword_1 = surwords(subject_1,j,token_sen_1,n_token)
-            print(f'the second surround words: {surword_1}')
+
+            surword_1 = surwords(subject_1, j, token_sen_1, n_token)
             pol_1 = return_polarity(surword_1)
-            print(f'the second subject polarity: {pol_1}')
+
             pol_distance = diff_po(pol_0, pol_1)
             pol_distances += pol_distance
-    res = pol_distances / 2*len_M
-    print(f'sentence{m} to sentence{n} opinion distance is : {res}')
+
+    if len_M == 0:
+        res = 0.0
+    else:
+        res = pol_distances / (2 * len_M)
     return res
+
+
+def cal_op_distance():
+
+    pass
 
 
 def main():
@@ -303,14 +297,10 @@ def main():
     title = '中国人为什么不能选择安乐死?'
     # parse, = parser.raw_parse(title)
     title_sub = find_NN(title, parser)
-    # tokenize
-    # title_token = list(parser.tokenize(title))
-    # print(title_token)
 
     # parse danmaku and extract subjects
     # using windows : surrounding polarity
     data = pd.read_csv('demo.csv')
-    # danmaku_list = data.loc[:, 'Barrages_original']
 
     # get index of 1. INITIAL 2. middle 3. end
     # for now: the same padding;
@@ -322,23 +312,26 @@ def main():
 
     # slice danmaku list: initial + last, get subjects:list of lists
     initial_dan = data.loc[:start_idx, 'Barrages_original']
-    ini_subj = padding_initial(title_sub, initial_dan,parser)
+    ini_subj = padding_initial(title_sub, initial_dan, parser)
     last_data = data[start_idx + 1:]
     # padding danmaku
     # processing padding on different timezone
     last_subjects = process_padding_last(last_data, parser, title_sub, data)
     subjects = ini_subj + last_subjects
 
-    m = 10 # the m-th sentence
-    n = 100 # the n-th sentence
-    # what's the opinion distance between danmaku-m 0 and danmaku-n 1
-    # 因为违法，讨论完毕,0.0
-    # 因为人口会大量减少,0.151
-    op_distance(subjects,m,n,data,parser)
+    # mapping and filter
+    pair_idxs = map_subjects(subjects)
+
+
+    # enumerate all of the danmaku and pairlying output opinion distances
+    row_length = data.shape[0]  # how many rows
+    m = np.array([range(row_length)])
+    distance.cdist(m,m, lambda u, v: op_distance(u,v,data=data,parser=parser,subjects=subjects,pair_idxs=pair_idxs))
+    # distance.cdist(m,m,op_distance,data,parser,subjects)
+
+    # total: 104*103/2=5356
+    # zero distance:
 
 
 if __name__ == '__main__':
-    # main_test2()
     main()
-    # main_test3()
-    # main_test1()
