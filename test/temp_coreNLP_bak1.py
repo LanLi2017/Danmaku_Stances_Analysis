@@ -6,7 +6,8 @@ from nltk import CoreNLPParser, CoreNLPDependencyParser, Tree
 from sematch.semantic.similarity import WordNetSimilarity
 import pandas as pd
 from polyglot.text import Text
-
+from scipy.spatial import distance
+import numpy as np
 
 def filter_data():
     # filter data
@@ -113,7 +114,6 @@ def map_subjects(subjects: list, filter_dis=0.2):
     # mapping the subjects, filter the i,j in M
     wns = WordNetSimilarity()
     # enumerate pairing and calculate distances
-    # [['中国人', '安乐死'], ['太阳', '很好']]
     pair = []
     # return the indexes pairing
     pair_idxs = []
@@ -131,7 +131,6 @@ def map_subjects(subjects: list, filter_dis=0.2):
                         # pairing index: (row, column)
                         pair_idxs.append(([index, value.index(v)], [i, com_value.index(cv)]))
             i += 1
-
     return pair_idxs
 
 
@@ -251,25 +250,22 @@ def diff_po(pol1, pol2):
     return abs(p_1 - p_2)
 
 
-def op_distance(subjects, m, n, data, parser, pair_idxs):
+def op_distance(u, v, data, parser,subjects,pair_idxs):
     # return opinion distance
     # OD(O1, O2) = sum_enumerate(f()) / 2*len_enumeration()
     # map subjects between each danmaku, filter
-
     # pairing index in op1 and op2, [(i,j)]
-    len_M, mapids = mappingset(pair_idxs, m, n)
-    # m= 1 n= 0
-    # [(0, 1), (1, 1)]
+    len_M, mapids = mappingset(pair_idxs, u.any, v.any)
     # obj1: sentence1, subj:0; obj0: sentence 0, subj:1
     # obj1: sentence1, subj:1; obj0: sentence 0, subj:1
     pol_distances = 0
     # surround words -2, +2
     n_token = 2
     danmaku = data.loc[:, 'Barrages_original']
-    token_sen_0 = list(parser.tokenize(danmaku[m]))
-    token_sen_1 = list(parser.tokenize(danmaku[n]))
-    subject_0 = subjects[m]
-    subject_1 = subjects[n]
+    token_sen_0 = list(parser.tokenize(danmaku[u.any()]))
+    token_sen_1 = list(parser.tokenize(danmaku[v.any()]))
+    subject_0 = subjects[u.any()]
+    subject_1 = subjects[v.any()]
 
     if mapids:
         for id in mapids:
@@ -283,12 +279,17 @@ def op_distance(subjects, m, n, data, parser, pair_idxs):
 
             pol_distance = diff_po(pol_0, pol_1)
             pol_distances += pol_distance
-    # skip
+
     if len_M == 0:
         res = 0.0
     else:
         res = pol_distances / (2 * len_M)
     return res
+
+
+def cal_op_distance():
+
+    pass
 
 
 def main():
@@ -299,7 +300,7 @@ def main():
 
     # parse danmaku and extract subjects
     # using windows : surrounding polarity
-    data = pd.read_csv('../temp/demo.csv')
+    data = pd.read_csv('demo.csv')
 
     # get index of 1. INITIAL 2. middle 3. end
     # for now: the same padding;
@@ -317,37 +318,16 @@ def main():
     # processing padding on different timezone
     last_subjects = process_padding_last(last_data, parser, title_sub, data)
     subjects = ini_subj + last_subjects
+
+    # mapping and filter
     pair_idxs = map_subjects(subjects)
-    pprint(pair_idxs)
+
 
     # enumerate all of the danmaku and pairlying output opinion distances
     row_length = data.shape[0]  # how many rows
-    count_zero_dis = 0  # how many distances are 0 between sentences?
-
-    # save res into table:
-    # first sentence; second sentence; opinion distance
-    sentence_0_list = []
-    sentence_1_list = []
-    op_dis_list = []
-    df = pd.DataFrame(columns=('first sentence', 'second sentence', 'op_distance'))
-    with open('distance.txt', 'w')as f:
-        for m in range(row_length):
-            n = m + 1
-            while n < row_length:
-                sentence_0_list.append(m)
-                sentence_1_list.append(n)
-                op_d = op_distance(subjects, m, n, data, parser, pair_idxs)
-                op_dis_list.append(op_d)
-
-                f.write(f'the distance between danmaku {m} and danmaku {n} is: {op_d}\n')
-                if op_d == 0.0:
-                    count_zero_dis += 1
-                n += 1
-    df['first sentence'] = sentence_0_list
-    df['second sentence'] = sentence_1_list
-    df['op_distance'] = op_dis_list
-    df.to_csv('distance_table.csv', index=False)
-    print(count_zero_dis)
+    m = np.array([range(row_length)])
+    distance.cdist(m,m, lambda u, v: op_distance(u,v,data=data,parser=parser,subjects=subjects,pair_idxs=pair_idxs))
+    # distance.cdist(m,m,op_distance,data,parser,subjects)
 
     # total: 104*103/2=5356
     # zero distance:
